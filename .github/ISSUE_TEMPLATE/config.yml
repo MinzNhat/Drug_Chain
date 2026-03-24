@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Drug_Chain Discussions
+      url: https://github.com/MinzNhat/Drug_Chain/discussions
+      about: Ask questions and discuss ideas with the community.
+    - name: Security Contact
+      url: mailto:nhat.dang2004.cv@gmail.com
+      about: Report sensitive security issues privately.

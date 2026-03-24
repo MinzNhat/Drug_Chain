@@ -1,0 +1,9 @@
+# Runtime and local execution logs
+*.log
+
+# Canonical infrastructure generated output
+infrastructure/canonical/channel-artifacts/
+infrastructure/canonical/organizations/
+
+# Node dependencies
+chaincode-js/node_modules/

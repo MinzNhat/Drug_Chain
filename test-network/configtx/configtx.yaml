@@ -158,14 +158,14 @@ Application: &ApplicationDefaults
       Type: ImplicitMeta
       Rule: "ANY Writers"
     Admins:
-      Type: ImplicitMeta
-      Rule: "MAJORITY Admins"
+      Type: Signature
+      Rule: "OR('Org1MSP.admin')"
     LifecycleEndorsement:
-      Type: ImplicitMeta
-      Rule: "MAJORITY Endorsement"
+      Type: Signature
+      Rule: "OR('Org1MSP.peer')"
     Endorsement:
       Type: ImplicitMeta
-      Rule: "MAJORITY Endorsement"
+      Rule: "ANY Endorsement"
   Capabilities:
     <<: *ApplicationCapabilities
 ################################################################################

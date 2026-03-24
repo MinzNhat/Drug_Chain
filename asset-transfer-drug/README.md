@@ -1,0 +1,293 @@
+# Drug Supply Chain Blockchain
+
+[![status: stable](https://img.shields.io/badge/status-stable-1f7a1f)](.)
+[![scope: anti-counterfeit](https://img.shields.io/badge/scope-anti--counterfeit-2b4c7e)](.)
+[![integration: protected-qr](https://img.shields.io/badge/integration-protected--qr-0f766e)](.)
+
+Standalone Hyperledger Fabric module for pharmaceutical anti-counterfeit workflows.
+
+This repository is intentionally scoped to blockchain only.
+Backend and Protected QR services must run as separate systems and integrate through API and ledger contracts.
+
+Deep-dive onboarding guide for new developers:
+
+- [ARCHITECTURE_AND_DEV_GUIDE.md](ARCHITECTURE_AND_DEV_GUIDE.md)
+
+## Key Guarantees
+
+- Blockchain runtime is fully independent from Backend runtime.
+- Blockchain runtime is fully independent from Protected QR runtime.
+- Protected QR metadata is validated on-chain with strict hex-size rules.
+- Scan verification is ledger-writing (`VerifyBatch` is a submit transaction).
+- Physical verification evidence can be anchored on-chain (`RecordProtectedQRVerification`).
+
+## Service Boundaries
+
+Three services must be deployed independently:
+
+1. Blockchain service (this folder)
+
+- Fabric network
+- Chaincode lifecycle
+- Governance scripts
+
+2. Backend service (your BE repository)
+
+- Public/internal APIs
+- Fabric Gateway client
+- Orchestration between Blockchain and Protected QR service
+
+3. Protected QR service (your Protected_QR repository)
+
+- QR generation and image verification
+- Fixed geometry + confidence scoring
+- No direct Fabric access
+
+## Architecture
+
+- RegulatorMSP: governance, chaincode lifecycle, emergency recall.
+- ManufacturerMSP: batch creation, QR binding, document updates, shipping.
+- DistributorMSP: receiving and downstream operations.
+- Public users: access through Backend only.
+
+## Project Layout
+
+```text
+asset-transfer-drug/
+    chaincode-js/
+        lib/drugTracker.js
+        META-INF/statedb/couchdb/indexes/indexBatchDocType.json
+        package.json
+    scripts/
+        blockchain_run.sh
+        blockchain_smoke_test.sh
+        update_code_centralized.sh
+        add_org_centralized.sh
+    infrastructure/
+        canonical/
+            configtx/
+            compose/
+            crypto-config/
+            scripts/
+    README.md
+```
+
+## On-Chain API Overview
+
+### Batch Workflow
+
+- `CreateBatch(batchID, drugName, quantity)`
+- `CreateBatchWithExpiry(batchID, drugName, quantity, expiryDate)`
+- `ReadBatch(batchID)`
+- `VerifyBatch(batchID)`
+- `EvaluateBatchRisk(batchID)`
+- `UpdateDocument(batchID, docType, newCID)`
+- `ShipBatch(batchID, receiverMSP)`
+- `ReceiveBatch(batchID)`
+- `EmergencyRecall(batchID)`
+
+### Protected QR Workflow
+
+- `BindProtectedQR(batchID, data_hash, metadata_series, metadata_issued, metadata_expiry, token_digest)`
+- `ReadProtectedQR(batchID)`
+- `VerifyProtectedQR(batchID, token_digest)`
+- `RecordProtectedQRVerification(batchID, is_authentic, confidence_score, token_digest)`
+
+## Protected QR Metadata Contract
+
+All fields are required hex strings:
+
+- `data_hash`: 8 hex chars
+- `metadata_series`: 16 hex chars
+- `metadata_issued`: 16 hex chars
+- `metadata_expiry`: 16 hex chars
+- `token_digest`: 64 hex chars (`sha256(token)`)
+
+On-chain verification policy defaults:
+
+- `authentic_threshold`: `0.70`
+- `fake_threshold`: `0.55`
+
+`RecordProtectedQRVerification` computes verdict:
+
+- `AUTHENTIC` when `is_authentic=true` and `confidence_score > 0.70`
+- `FAKE` when `is_authentic=false` and `confidence_score < 0.55`
+- `REVIEW_REQUIRED` otherwise
+
+## Submit vs Evaluate Matrix
+
+Use `submitTransaction` for:
+
+- `CreateBatch*`
+- `VerifyBatch`
+- `UpdateDocument`
+- `ShipBatch`
+- `ReceiveBatch`
+- `EmergencyRecall`
+- `BindProtectedQR`
+- `RecordProtectedQRVerification`
+
+Use `evaluateTransaction` for:
+
+- `ReadBatch`
+- `EvaluateBatchRisk`
+- `ReadProtectedQR`
+- `VerifyProtectedQR`
+
+## Chaincode Events
+
+- `GovMonitor`
+- `PublicAlert`
+- `PinningRequest`
+- `ProtectedQRBound`
+- `ProtectedQRVerificationRecorded`
+
+## Quick Start (Blockchain Only)
+
+### Prerequisites
+
+- Docker + Docker Compose
+- Hyperledger Fabric test-network dependencies
+
+### Install Fabric binaries/images
+
+```bash
+cd fabric-samples/asset-transfer-drug
+./scripts/blockchain_run.sh prereq
+```
+
+### Start network and deploy chaincode
+
+```bash
+cd fabric-samples/asset-transfer-drug
+./scripts/blockchain_run.sh full
+```
+
+### Run smoke test
+
+```bash
+cd fabric-samples/asset-transfer-drug
+./scripts/blockchain_smoke_test.sh
+```
+
+### Stop network
+
+```bash
+cd fabric-samples/asset-transfer-drug
+./scripts/blockchain_run.sh down
+```
+
+## Upgrade Chaincode
+
+```bash
+cd fabric-samples/asset-transfer-drug
+CC_VERSION=2.0 CC_SEQUENCE=2 ./scripts/blockchain_run.sh upgrade
+./scripts/blockchain_smoke_test.sh
+```
+
+Rules:
+
+- Always increment `CC_SEQUENCE` for each definition update.
+- Never reuse one version label for different source content.
+
+## Add New Organization
+
+```bash
+cd fabric-samples/asset-transfer-drug
+NEW_ORG_MSP=DistributorMSP \
+NEW_ORG_NUMBER=3 \
+NEW_ORG_JSON=../test-network/organizations/peerOrganizations/org3.example.com/org3.json \
+./scripts/add_org_centralized.sh
+```
+
+## Backend Integration Notes
+
+Implement your own Fabric Gateway client in Backend and follow the transaction matrix in this document.
+
+Recommended public scan flow:
+
+1. Backend verifies uploaded QR image via Protected QR service.
+2. Backend computes `token_digest = sha256(token)`.
+3. Backend evaluates `VerifyProtectedQR` against the digest.
+4. Backend submits `RecordProtectedQRVerification` with confidence result.
+5. Backend submits `VerifyBatch` to update scan telemetry and eventing.
+6. Backend returns combined decision to the client.
+
+## Security and Operations
+
+- Keep wallet keys outside repository.
+- Use TLS and rate limiting at API gateway level.
+- Store event offsets/checkpoints in Backend workers.
+- Monitor chaincode invoke failures and event lag.
+
+## Canonical Infrastructure Bundle
+
+Canonical deployment artifacts are available under `infrastructure/canonical`.
+
+```bash
+cd fabric-samples/asset-transfer-drug
+./infrastructure/canonical/scripts/canonical_bootstrap.sh validate
+./infrastructure/canonical/scripts/canonical_bootstrap.sh generate
+docker compose -f infrastructure/canonical/compose/compose-canonical.yaml up -d
+```
+
+## Deployment (Docker)
+
+For a root-level Docker workflow similar to standard GitHub service templates:
+
+```bash
+cd fabric-samples/asset-transfer-drug
+./infrastructure/canonical/scripts/canonical_bootstrap.sh generate
+cd ..
+docker compose up -d
+```
+
+This uses the top-level `docker-compose.yml` as a convenience entrypoint.
+
+## Environment Variables
+
+See root [.env.example](../.env.example).
+
+| Name                  | Required | Description                                        |
+| --------------------- | -------- | -------------------------------------------------- |
+| `CHANNEL_NAME`        | No       | Fabric channel name used by scripts.               |
+| `CC_NAME`             | No       | Chaincode name.                                    |
+| `CC_VERSION`          | No       | Chaincode version label.                           |
+| `CC_SEQUENCE`         | No       | Chaincode definition sequence.                     |
+| `VERIFY_TIMES`        | No       | Number of verification iterations in smoke test.   |
+| `QR_DATA_HASH`        | No       | Protected QR data hash (8 hex).                    |
+| `QR_METADATA_SERIES`  | No       | Protected QR series metadata (16 hex).             |
+| `QR_METADATA_ISSUED`  | No       | Protected QR issued metadata (16 hex).             |
+| `QR_METADATA_EXPIRY`  | No       | Protected QR expiry metadata (16 hex).             |
+| `QR_TOKEN_DIGEST`     | No       | Anchored SHA-256 digest (64 hex).                  |
+| `QR_IS_AUTHENTIC`     | No       | Physical verification authenticity flag.           |
+| `QR_CONFIDENCE_SCORE` | No       | Physical verification confidence score in `[0,1]`. |
+
+## Troubleshooting
+
+- If `peer` binary is missing, run `./scripts/blockchain_run.sh prereq`.
+- If lifecycle commit fails, increase `CC_SEQUENCE` and retry.
+- If smoke test fails due existing default batch ID, rerun (script auto-suffixes).
+- If canonical compose fails, ensure `canonical_bootstrap.sh generate` was run first.
+
+## Bug Reports
+
+Found a bug? Open an issue from your repository **Issues** tab and include:
+
+- exact command used
+- full error output
+- expected vs actual behavior
+
+## Feature Requests
+
+Have an enhancement idea? Open a feature request from your repository **Issues** or **Discussions** tab.
+
+## License
+
+Follow the parent repository license and governance policy.
+
+## Support
+
+- **Issues**: your repository Issues tab
+- **Discussions**: your repository Discussions tab
+- **Maintainer Contact**: add your preferred contact channel in this section

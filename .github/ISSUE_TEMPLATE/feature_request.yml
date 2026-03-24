@@ -1,0 +1,46 @@
+name: Feature Request
+description: Suggest an improvement for Drug_Chain
+title: "[Feature]: "
+labels:
+    - enhancement
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for sharing an idea. Please describe the use case and expected impact.
+    - type: textarea
+      id: problem
+      attributes:
+          label: Problem Statement
+          description: What limitation or pain point are you facing?
+          placeholder: Describe the current gap.
+      validations:
+          required: true
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposed Solution
+          description: What behavior or capability should be added?
+          placeholder: Describe the expected workflow.
+      validations:
+          required: true
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives Considered
+          description: Any alternatives or trade-offs you considered.
+    - type: textarea
+      id: scope
+      attributes:
+          label: Scope And Impact
+          description: Affected components (chaincode, scripts, docs, gateway integration).
+          placeholder: asset-transfer-drug/chaincode-js, scripts/blockchain_run.sh, README
+    - type: checkboxes
+      id: checklist
+      attributes:
+          label: Checklist
+          options:
+              - label: This request is aligned with a blockchain-only scope.
+                required: true
+              - label: I searched existing issues and discussions first.
+                required: true

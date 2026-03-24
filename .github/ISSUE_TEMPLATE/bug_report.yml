@@ -1,0 +1,52 @@
+name: Bug Report
+description: Report a reproducible problem in Drug_Chain
+title: "[Bug]: "
+labels:
+    - bug
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for reporting a bug. Please provide enough detail so we can reproduce and fix quickly.
+    - type: textarea
+      id: summary
+      attributes:
+          label: Summary
+          description: What happened and what did you expect?
+          placeholder: A clear and concise description.
+      validations:
+          required: true
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps To Reproduce
+          description: Exact commands and sequence used.
+          placeholder: |
+              1. cd Drug_Chain/asset-transfer-drug
+              2. ./scripts/blockchain_run.sh full
+              3. ./scripts/blockchain_smoke_test.sh
+      validations:
+          required: true
+    - type: textarea
+      id: logs
+      attributes:
+          label: Logs Or Error Output
+          description: Paste relevant logs, stack traces, or command output.
+          render: shell
+    - type: input
+      id: environment
+      attributes:
+          label: Environment
+          description: OS, Docker version, Fabric binaries, and branch/commit.
+          placeholder: macOS 15.x, Docker 27.x, Fabric 2.5.x
+      validations:
+          required: true
+    - type: checkboxes
+      id: checklist
+      attributes:
+          label: Checklist
+          options:
+              - label: I searched existing issues before opening this report.
+                required: true
+              - label: I can reproduce this issue consistently.
+                required: true

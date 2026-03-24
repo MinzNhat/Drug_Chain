@@ -1,73 +1,296 @@
-[//]: # (SPDX-License-Identifier: CC-BY-4.0)
+# Drug Supply Chain BlockChain
 
-# Hyperledger Fabric Samples
+[![status: stable](https://img.shields.io/badge/status-stable-1f7a1f)](.)
+[![scope: blockchain](https://img.shields.io/badge/scope-blockchain-2b4c7e)](.)
+[![integration: protected-qr](https://img.shields.io/badge/integration-protected--qr-0f766e)](.)
 
-You can use Fabric samples to get started working with Hyperledger Fabric, explore important Fabric features, and learn how to build applications that can interact with blockchain networks using the Fabric SDKs. To learn more about Hyperledger Fabric, visit the [Fabric documentation](https://hyperledger-fabric.readthedocs.io/en/latest).
+Permissioned Hyperledger Fabric blockchain for pharmaceutical anti-counterfeit workflows.
 
-Note that this branch contains samples for the latest Fabric release. For older Fabric versions, refer to the corresponding branches:
+This repository is intentionally blockchain-only. Backend and Protected QR services run independently and integrate through Fabric Gateway and API contracts.
 
-- [release-2.2](https://github.com/hyperledger/fabric-samples/tree/release-2.2)
-- [release-1.4](https://github.com/hyperledger/fabric-samples/tree/release-1.4)
+## Key Guarantees
 
-## Getting started with the Fabric samples
+- Immutable batch lifecycle history on ledger.
+- Strict on-chain Protected QR metadata validation.
+- Confidence-based physical verification evidence recorded on-chain.
+- Deterministic submit/evaluate transaction boundary.
+- Scripted governance for lifecycle and organization onboarding.
 
-To use the Fabric samples, you need to download the Fabric Docker images and the Fabric CLI tools. First, make sure that you have installed all of the [Fabric prerequisites](https://hyperledger-fabric.readthedocs.io/en/latest/prereqs.html). You can then follow the instructions to [Install the Fabric Samples, Binaries, and Docker Images](https://hyperledger-fabric.readthedocs.io/en/latest/install.html) in the Fabric documentation. In addition to downloading the Fabric images and tool binaries, the Fabric samples will also be cloned to your local machine.
+## Architecture
 
-## Test network
+- **RegulatorMSP**: governance, lifecycle control, emergency recall.
+- **ManufacturerMSP**: batch creation, QR binding, document updates, shipping.
+- **DistributorMSP**: receiving and ownership continuation.
+- **Backend (external service)**: API orchestration and gateway integration.
+- **Protected QR (external service)**: QR generation and physical verification.
 
-The [Fabric test network](test-network) in the samples repository provides a Docker Compose based test network with two
-Organization peers and an ordering service node. You can use it on your local machine to run the samples listed below.
-You can also use it to deploy and test your own Fabric chaincodes and applications. To get started, see
-the [test network tutorial](https://hyperledger-fabric.readthedocs.io/en/latest/test_network.html).
+## Project Layout
 
-The [Kubernetes Test Network](test-network-k8s) sample builds upon the Compose network, constructing a Fabric
-network with peer, orderer, and CA infrastructure nodes running on Kubernetes.  In addition to providing a sample
-Kubernetes guide, the Kube test network can be used as a platform to author and debug _cloud ready_ Fabric Client
-applications on a development or CI workstation.
+```text
+Drug_Chain/
+    asset-transfer-drug/
+        chaincode-js/
+            lib/drugTracker.js
+            META-INF/statedb/couchdb/indexes/indexBatchDocType.json
+        scripts/
+            blockchain_run.sh
+            blockchain_smoke_test.sh
+            update_code_centralized.sh
+            add_org_centralized.sh
+        infrastructure/
+            canonical/
+                configtx/
+                compose/
+                crypto-config/
+                scripts/
+        README.md
+        ARCHITECTURE_AND_DEV_GUIDE.md
+    test-network/
+    bin/
+    config/
+    docker-compose.yml
+    .env.example
+    install-fabric.sh
+```
 
+## API Overview (On-Chain)
 
-## Asset transfer samples and tutorials
+- `CreateBatch`
+- `CreateBatchWithExpiry`
+- `ReadBatch`
+- `VerifyBatch`
+- `EvaluateBatchRisk`
+- `UpdateDocument`
+- `BindProtectedQR`
+- `ReadProtectedQR`
+- `VerifyProtectedQR`
+- `RecordProtectedQRVerification`
+- `ShipBatch`
+- `ReceiveBatch`
+- `EmergencyRecall`
 
-The asset transfer series provides a series of sample smart contracts and applications to demonstrate how to store and transfer assets using Hyperledger Fabric.
-Each sample and associated tutorial in the series demonstrates a different core capability in Hyperledger Fabric. The **Basic** sample provides an introduction on how
-to write smart contracts and how to interact with a Fabric network using the Fabric SDKs. The **Ledger queries**, **Private data**, and **State-based endorsement**
-samples demonstrate these additional capabilities. Finally, the **Secured agreement** sample demonstrates how to bring all the capabilities together to securely
-transfer an asset in a more realistic transfer scenario.
+Detailed developer guide:
 
-|  **Smart Contract** | **Description** | **Tutorial** | **Smart contract languages** | **Application languages** |
-| -----------|------------------------------|----------|---------|---------|
-| [Basic](asset-transfer-basic) | The Basic sample smart contract that allows you to create and transfer an asset by putting data on the ledger and retrieving it. This sample is recommended for new Fabric users. | [Writing your first application](https://hyperledger-fabric.readthedocs.io/en/latest/write_first_app.html) | Go, JavaScript, TypeScript, Java | Go, TypeScript, Java |
-| [Ledger queries](asset-transfer-ledger-queries) | The ledger queries sample demonstrates range queries and transaction updates using range queries (applicable for both LevelDB and CouchDB state databases), and how to deploy an index with your chaincode to support JSON queries (applicable for CouchDB state database only). | [Using CouchDB](https://hyperledger-fabric.readthedocs.io/en/latest/couchdb_tutorial.html) | Go, JavaScript | Java, JavaScript |
-| [Private data](asset-transfer-private-data) | This sample demonstrates the use of private data collections, how to manage private data collections with the chaincode lifecycle, and how the private data hash can be used to verify private data on the ledger. It also demonstrates how to control asset updates and transfers using client-based ownership and access control. | [Using Private Data](https://hyperledger-fabric.readthedocs.io/en/latest/private_data_tutorial.html) | Go, TypeScript, Java | TypeScript |
-| [State-Based Endorsement](asset-transfer-sbe) | This sample demonstrates how to override the chaincode-level endorsement policy to set endorsement policies at the key-level (data/asset level). | [Using State-based endorsement](https://github.com/hyperledger/fabric-samples/tree/main/asset-transfer-sbe) | Java, TypeScript | JavaScript |
-| [Secured agreement](asset-transfer-secured-agreement) | Smart contract that uses implicit private data collections, state-based endorsement, and organization-based ownership and access control to keep data private and securely transfer an asset with the consent of both the current owner and buyer. | [Secured asset transfer](https://hyperledger-fabric.readthedocs.io/en/latest/secured_asset_transfer/secured_private_asset_transfer_tutorial.html)  | Go | TypeScript |
-| [Events](asset-transfer-events) | The events sample demonstrates how smart contracts can emit events that are read by the applications interacting with the network. | [README](asset-transfer-events/README.md)  | Go, JavaScript, Java | Go, TypeScript, Java |
-| [Attribute-based access control](asset-transfer-abac) | Demonstrates the use of attribute and identity based access control using a simple asset transfer scenario | [README](asset-transfer-abac/README.md)  | Go | _None_ |
+- [asset-transfer-drug/ARCHITECTURE_AND_DEV_GUIDE.md](asset-transfer-drug/ARCHITECTURE_AND_DEV_GUIDE.md)
 
-## Full stack asset transfer guide
+## Protected QR Metadata Contract
 
-The [full stack asset transfer guide](full-stack-asset-transfer-guide#readme) workshop demonstrates how a generic asset transfer solution for Hyperledger Fabric can be developed and deployed. This covers chaincode development, client application development, and deployment to a production-like environment.
+All metadata fields are strict hexadecimal strings:
 
-## Additional samples
+- `data_hash`: 8 hex chars
+- `metadata_series`: 16 hex chars
+- `metadata_issued`: 16 hex chars
+- `metadata_expiry`: 16 hex chars
+- `token_digest`: 64 hex chars (`sha256(token)`)
 
-Additional samples demonstrate various Fabric use cases and application patterns.
+## Requirements
 
-|  **Sample** | **Description** | **Documentation** |
-| -------------|------------------------------|------------------|
-| [Off chain data](off_chain_data) | Learn how to use block events to build an off-chain database for reporting and analytics. | [Peer channel-based event services](https://hyperledger-fabric.readthedocs.io/en/latest/peer_event_services.html) |
-| [Token SDK](token-sdk) | Sample REST API around the Hyperledger Labs [Token SDK](https://github.com/hyperledger-labs/fabric-token-sdk) for privacy friendly (zero knowledge proof) UTXO transactions. | [README](token-sdk/README.md) |
-| [Token ERC-20](token-erc-20) | Smart contract demonstrating how to create and transfer fungible tokens using an account-based model. | [README](token-erc-20/README.md) |
-| [Token UTXO](token-utxo) | Smart contract demonstrating how to create and transfer fungible tokens using a UTXO (unspent transaction output) model. | [README](token-utxo/README.md) |
-| [Token ERC-1155](token-erc-1155) | Smart contract demonstrating how to create and transfer multiple tokens (both fungible and non-fungible) using an account based model. | [README](token-erc-1155/README.md) |
-| [Token ERC-721](token-erc-721) | Smart contract demonstrating how to create and transfer non-fungible tokens using an account-based model. | [README](token-erc-721/README.md) |
-| [High throughput](high-throughput) | Learn how you can design your smart contract to avoid transaction collisions in high volume environments. | [README](high-throughput/README.md) |
-| [Simple Auction](auction-simple) | Run an auction where bids are kept private until the auction is closed, after which users can reveal their bid. | [README](auction-simple/README.md) |
-| [Dutch Auction](auction-dutch) | Run an auction in which multiple items of the same type can be sold to more than one buyer. This example also includes the ability to add an auditor organization. | [README](auction-dutch/README.md) |
+- Docker + Docker Compose
+- Hyperledger Fabric binaries
+- macOS/Linux shell (bash/zsh)
 
+## Deployment
 
-## License <a name="license"></a>
+### Option A: Scripted Development Flow (Recommended)
 
-Hyperledger Project source code files are made available under the Apache
-License, Version 2.0 (Apache-2.0), located in the [LICENSE](LICENSE) file.
-Hyperledger Project documentation files are made available under the Creative
-Commons Attribution 4.0 International License (CC-BY-4.0), available at http://creativecommons.org/licenses/by/4.0/.
+```bash
+cd Drug_Chain/asset-transfer-drug
+./scripts/blockchain_run.sh prereq
+./scripts/blockchain_run.sh full
+./scripts/blockchain_smoke_test.sh
+```
+
+### Option B: Canonical Docker Topology
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+./infrastructure/canonical/scripts/canonical_bootstrap.sh generate
+cd ..
+docker compose up -d
+```
+
+Top-level `docker-compose.yml` mirrors canonical Fabric topology for consistency.
+
+### Option C: Root Docker Compose Validation
+
+```bash
+cd Drug_Chain
+docker compose -f docker-compose.yml config -q
+```
+
+Use this check before `docker compose up -d` to validate syntax and mounts.
+
+## Installation
+
+```bash
+cd Drug_Chain
+./install-fabric.sh docker binary
+cp .env.example .env
+```
+
+## Run (Production-Like)
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+CC_VERSION=2.0 CC_SEQUENCE=2 ./scripts/blockchain_run.sh upgrade
+./scripts/blockchain_smoke_test.sh
+```
+
+## Run (Development)
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+./scripts/blockchain_run.sh full
+./scripts/blockchain_smoke_test.sh
+```
+
+## Usage Flow
+
+1. Start network and deploy chaincode.
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+./scripts/blockchain_run.sh prereq
+./scripts/blockchain_run.sh full
+```
+
+2. Run blockchain smoke flow (batch create, QR bind, verify, ship/receive).
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+./scripts/blockchain_smoke_test.sh
+```
+
+3. Shut down and clean network artifacts.
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+./scripts/blockchain_run.sh down
+```
+
+## Gateway Usage Examples
+
+Evaluate transaction (read-only):
+
+```javascript
+const result = await contract.evaluateTransaction("ReadBatch", batchId);
+```
+
+Submit transaction (state-changing):
+
+```javascript
+await contract.submitTransaction(
+    "BindProtectedQR",
+    batchId,
+    dataHash,
+    metadataSeries,
+    metadataIssued,
+    metadataExpiry,
+    tokenDigest,
+);
+```
+
+Production integration guideline:
+
+- Backend should use org-scoped Fabric identities per role (Manufacturer, Distributor, Regulator).
+- Protected QR service should hash and validate metadata off-chain before submit.
+- Keep idempotency logic in backend for retry-safe submit operations.
+
+## Final Pre-Public Checklist
+
+Run this exact checklist before publishing:
+
+1. Scripted runtime regression
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+./scripts/blockchain_run.sh prereq
+./scripts/blockchain_run.sh full
+./scripts/blockchain_smoke_test.sh
+./scripts/blockchain_run.sh down
+```
+
+2. Canonical Docker regression
+
+```bash
+cd Drug_Chain/asset-transfer-drug
+./infrastructure/canonical/scripts/canonical_bootstrap.sh generate
+cd ..
+docker compose -f docker-compose.yml config -q
+docker compose -f docker-compose.yml up -d
+docker compose -f docker-compose.yml ps
+docker compose -f docker-compose.yml down --remove-orphans
+```
+
+3. Final doc sanity
+
+- Verify environment table matches `.env.example`.
+- Verify chaincode API list matches deployed contract methods.
+- Verify all external links resolve.
+
+## Environment Variables
+
+See [.env.example](.env.example).
+
+| Name                  | Required | Description                                           |
+| --------------------- | -------- | ----------------------------------------------------- |
+| `CHANNEL_NAME`        | No       | Fabric channel name.                                  |
+| `CC_NAME`             | No       | Chaincode name.                                       |
+| `CC_LANG`             | No       | Chaincode language (`javascript`).                    |
+| `CC_VERSION`          | No       | Chaincode version label.                              |
+| `CC_SEQUENCE`         | No       | Lifecycle sequence number.                            |
+| `VERIFY_TIMES`        | No       | Smoke test verify iterations.                         |
+| `QR_DATA_HASH`        | No       | Protected QR metadata hash (8 hex).                   |
+| `QR_METADATA_SERIES`  | No       | Protected QR series metadata (16 hex).                |
+| `QR_METADATA_ISSUED`  | No       | Protected QR issued metadata (16 hex).                |
+| `QR_METADATA_EXPIRY`  | No       | Protected QR expiry metadata (16 hex).                |
+| `QR_TOKEN_DIGEST`     | No       | SHA-256 token digest (64 hex).                        |
+| `QR_IS_AUTHENTIC`     | No       | Physical verification boolean for evidence recording. |
+| `QR_CONFIDENCE_SCORE` | No       | Physical confidence score in `[0,1]`.                 |
+
+## Operational Notes
+
+- Use `submit` for state-changing methods; use `evaluate` for read-only methods.
+- Always increment `CC_SEQUENCE` when updating chaincode definitions.
+- Keep organization MSP keys and wallet material outside source control.
+
+## Troubleshooting
+
+- If `peer` is missing, run `./scripts/blockchain_run.sh prereq`.
+- If lifecycle commit fails, confirm sequence/version increments.
+- If smoke test fails due existing batch ID, rerun (script auto-generates unique ID).
+
+## Security Considerations
+
+- Enforce TLS at gateway and API edges.
+- Use role-scoped identities for submit operations.
+- Validate metadata format before submit transactions.
+- Monitor chaincode events for anomaly and recall signals.
+
+## Bug Reports
+
+Found a bug? Please report it using our [Bug Report Form](https://github.com/MinzNhat/Drug_Chain/issues/new?template=bug_report.yml).
+
+## Feature Requests
+
+Have an idea for a new feature? Submit a [Feature Request Form](https://github.com/MinzNhat/Drug_Chain/issues/new?template=feature_request.yml).
+
+## License
+
+This project is licensed under the Apache-2.0 License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/MinzNhat/Drug_Chain/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/MinzNhat/Drug_Chain/discussions)
+- **Email**: nhat.dang2004.cv@gmail.com
+
+---
+
+<div align="center">
+    <p>Made with care by MinzNhat</p>
+    <p>
+        <a href="https://github.com/MinzNhat/Drug_Chain">Star us on GitHub</a> •
+        <a href="https://github.com/MinzNhat">Visit Profile</a>
+    </p>
+</div>
