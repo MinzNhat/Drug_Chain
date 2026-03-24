@@ -152,35 +152,35 @@ Use `evaluateTransaction` for:
 ### Install Fabric binaries/images
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 ./scripts/blockchain_run.sh prereq
 ```
 
 ### Start network and deploy chaincode
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 ./scripts/blockchain_run.sh full
 ```
 
 ### Run smoke test
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 ./scripts/blockchain_smoke_test.sh
 ```
 
 ### Stop network
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 ./scripts/blockchain_run.sh down
 ```
 
 ## Upgrade Chaincode
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 CC_VERSION=2.0 CC_SEQUENCE=2 ./scripts/blockchain_run.sh upgrade
 ./scripts/blockchain_smoke_test.sh
 ```
@@ -193,7 +193,7 @@ Rules:
 ## Add New Organization
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 NEW_ORG_MSP=DistributorMSP \
 NEW_ORG_NUMBER=3 \
 NEW_ORG_JSON=../test-network/organizations/peerOrganizations/org3.example.com/org3.json \
@@ -225,7 +225,7 @@ Recommended public scan flow:
 Canonical deployment artifacts are available under `infrastructure/canonical`.
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 ./infrastructure/canonical/scripts/canonical_bootstrap.sh validate
 ./infrastructure/canonical/scripts/canonical_bootstrap.sh generate
 docker compose -f infrastructure/canonical/compose/compose-canonical.yaml up -d
@@ -236,7 +236,7 @@ docker compose -f infrastructure/canonical/compose/compose-canonical.yaml up -d
 For a root-level Docker workflow similar to standard GitHub service templates:
 
 ```bash
-cd fabric-samples/asset-transfer-drug
+cd Drug_Chain/asset-transfer-drug
 ./infrastructure/canonical/scripts/canonical_bootstrap.sh generate
 cd ..
 docker compose up -d
@@ -272,22 +272,18 @@ See root [.env.example](../.env.example).
 
 ## Bug Reports
 
-Found a bug? Open an issue from your repository **Issues** tab and include:
-
-- exact command used
-- full error output
-- expected vs actual behavior
+Found a bug? Please report it using our [Bug Report Form](https://github.com/MinzNhat/Drug_Chain/issues/new?template=bug_report.yml).
 
 ## Feature Requests
 
-Have an enhancement idea? Open a feature request from your repository **Issues** or **Discussions** tab.
+Have an idea for a new feature? Submit a [Feature Request Form](https://github.com/MinzNhat/Drug_Chain/issues/new?template=feature_request.yml).
 
 ## License
 
-Follow the parent repository license and governance policy.
+This project is licensed under the Apache-2.0 License - see the [LICENSE](../LICENSE) file for details.
 
 ## Support
 
-- **Issues**: your repository Issues tab
-- **Discussions**: your repository Discussions tab
-- **Maintainer Contact**: add your preferred contact channel in this section
+- **Issues**: [GitHub Issues](https://github.com/MinzNhat/Drug_Chain/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/MinzNhat/Drug_Chain/discussions)
+- **Email**: nhat.dang2004.cv@gmail.com
