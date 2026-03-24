@@ -2,12 +2,11 @@
 
 [![status: stable](https://img.shields.io/badge/status-stable-1f7a1f)](.)
 [![scope: anti-counterfeit](https://img.shields.io/badge/scope-anti--counterfeit-2b4c7e)](.)
-[![integration: protected-qr](https://img.shields.io/badge/integration-protected--qr-0f766e)](.)
 
 Standalone Hyperledger Fabric module for pharmaceutical anti-counterfeit workflows.
 
 This repository is intentionally scoped to blockchain only.
-Backend and Protected QR services must run as separate systems and integrate through API and ledger contracts.
+External clients should integrate through Fabric Gateway and on-chain contract APIs.
 
 Deep-dive onboarding guide for new developers:
 
@@ -15,40 +14,17 @@ Deep-dive onboarding guide for new developers:
 
 ## Key Guarantees
 
-- Blockchain runtime is fully independent from Backend runtime.
-- Blockchain runtime is fully independent from Protected QR runtime.
+- Blockchain runtime is independent from off-chain services.
 - Protected QR metadata is validated on-chain with strict hex-size rules.
 - Scan verification is ledger-writing (`VerifyBatch` is a submit transaction).
 - Physical verification evidence can be anchored on-chain (`RecordProtectedQRVerification`).
-
-## Service Boundaries
-
-Three services must be deployed independently:
-
-1. Blockchain service (this folder)
-
-- Fabric network
-- Chaincode lifecycle
-- Governance scripts
-
-2. Backend service (your BE repository)
-
-- Public/internal APIs
-- Fabric Gateway client
-- Orchestration between Blockchain and Protected QR service
-
-3. Protected QR service (your Protected_QR repository)
-
-- QR generation and image verification
-- Fixed geometry + confidence scoring
-- No direct Fabric access
 
 ## Architecture
 
 - RegulatorMSP: governance, chaincode lifecycle, emergency recall.
 - ManufacturerMSP: batch creation, QR binding, document updates, shipping.
 - DistributorMSP: receiving and downstream operations.
-- Public users: access through Backend only.
+- Client access is through Fabric Gateway identities.
 
 ## Project Layout
 
@@ -200,24 +176,63 @@ NEW_ORG_JSON=../test-network/organizations/peerOrganizations/org3.example.com/or
 ./scripts/add_org_centralized.sh
 ```
 
-## Backend Integration Notes
+## Common Gateway Operations (Read And Take Over)
 
-Implement your own Fabric Gateway client in Backend and follow the transaction matrix in this document.
+Use these examples from any Fabric Gateway client.
+
+### 1) Read Batch Data (Read-Only)
+
+```javascript
+const batchJson = await contract.evaluateTransaction("ReadBatch", batchId);
+const batch = JSON.parse(batchJson.toString());
+console.log(batch.ownerMSP, batch.status, batch.transferStatus);
+```
+
+### 2) Transfer Ownership (Take Over)
+
+Ownership transfer is a two-step flow:
+
+1. Current owner submits `ShipBatch(batchID, receiverMSP)`.
+2. Target owner submits `ReceiveBatch(batchID)`.
+
+```javascript
+// Step A: called by current owner identity
+await contract.submitTransaction("ShipBatch", batchId, "DistributorMSP");
+
+// Step B: called by target owner identity
+await contract.submitTransaction("ReceiveBatch", batchId);
+```
+
+Quick validation:
+
+```javascript
+const updated = await contract.evaluateTransaction("ReadBatch", batchId);
+const state = JSON.parse(updated.toString());
+// Expect: state.ownerMSP = DistributorMSP, state.transferStatus = NONE
+```
+
+Transfer preconditions enforced by chaincode:
+
+- `ShipBatch`: caller must be current owner, batch must be `ACTIVE`, and `transferStatus` must be `NONE`.
+- `ReceiveBatch`: caller must match `targetOwnerMSP`, and batch must be `IN_TRANSIT`.
+
+## Client Integration Contract
+
+Implement a Fabric Gateway client and follow the transaction matrix in this document.
 
 Recommended public scan flow:
 
-1. Backend verifies uploaded QR image via Protected QR service.
-2. Backend computes `token_digest = sha256(token)`.
-3. Backend evaluates `VerifyProtectedQR` against the digest.
-4. Backend submits `RecordProtectedQRVerification` with confidence result.
-5. Backend submits `VerifyBatch` to update scan telemetry and eventing.
-6. Backend returns combined decision to the client.
+1. Client computes `token_digest = sha256(token)` from off-chain verification output.
+2. Client evaluates `VerifyProtectedQR` against the digest.
+3. Client submits `RecordProtectedQRVerification` with confidence result.
+4. Client submits `VerifyBatch` to update scan telemetry and eventing.
+5. Client returns combined decision to the caller.
 
 ## Security and Operations
 
 - Keep wallet keys outside repository.
 - Use TLS and rate limiting at API gateway level.
-- Store event offsets/checkpoints in Backend workers.
+- Store event offsets/checkpoints in gateway workers.
 - Monitor chaincode invoke failures and event lag.
 
 ## Canonical Infrastructure Bundle

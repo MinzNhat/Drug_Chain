@@ -2,11 +2,10 @@
 
 [![status: stable](https://img.shields.io/badge/status-stable-1f7a1f)](.)
 [![scope: blockchain](https://img.shields.io/badge/scope-blockchain-2b4c7e)](.)
-[![integration: protected-qr](https://img.shields.io/badge/integration-protected--qr-0f766e)](.)
 
 Permissioned Hyperledger Fabric blockchain for pharmaceutical anti-counterfeit workflows.
 
-This repository is intentionally blockchain-only. Backend and Protected QR services run independently and integrate through Fabric Gateway and API contracts.
+This repository is intentionally blockchain-only. External clients integrate through Fabric Gateway and on-chain contract APIs.
 
 ## Key Guarantees
 
@@ -21,8 +20,7 @@ This repository is intentionally blockchain-only. Backend and Protected QR servi
 - **RegulatorMSP**: governance, lifecycle control, emergency recall.
 - **ManufacturerMSP**: batch creation, QR binding, document updates, shipping.
 - **DistributorMSP**: receiving and ownership continuation.
-- **Backend (external service)**: API orchestration and gateway integration.
-- **Protected QR (external service)**: QR generation and physical verification.
+- **Client integrations**: consume on-chain APIs through Fabric Gateway identities.
 
 ## Project Layout
 
@@ -72,6 +70,8 @@ Drug_Chain/
 Detailed developer guide:
 
 - [asset-transfer-drug/ARCHITECTURE_AND_DEV_GUIDE.md](asset-transfer-drug/ARCHITECTURE_AND_DEV_GUIDE.md)
+- Gateway integration contract (read/write mapping + ownership transfer):
+    [asset-transfer-drug/README.md#client-integration-contract](asset-transfer-drug/README.md#client-integration-contract)
 
 ## Protected QR Metadata Contract
 
@@ -192,9 +192,9 @@ await contract.submitTransaction(
 
 Production integration guideline:
 
-- Backend should use org-scoped Fabric identities per role (Manufacturer, Distributor, Regulator).
-- Protected QR service should hash and validate metadata off-chain before submit.
-- Keep idempotency logic in backend for retry-safe submit operations.
+- Use org-scoped Fabric identities per role (Manufacturer, Distributor, Regulator).
+- Keep idempotency logic in client services for retry-safe submit operations.
+- Enforce input validation before calling submit transactions.
 
 ## Final Pre-Public Checklist
 
